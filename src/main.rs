@@ -110,6 +110,7 @@ fn subleq_opt2(code: &mut [i32]) {
     }
 }
 
+// this one is about the fastest
 fn subleq_opt3(code: &mut [i32]) {
     let mut ip = 0i32;
     let mut next_ip;
@@ -205,6 +206,34 @@ fn subleq_opt5(code: &mut [i32]) {
     }
 }
 
+// and this one (also a match) is really fast too
+fn subleq_opt6(code: &mut [i32]) {
+    let mut ip = 0i32;
+    let mut next_ip;
+
+    while ip >= 0 {
+        next_ip = ip + 3;
+
+        let ipu = ip as usize;
+        let sl = &mut code[ipu..ipu + 3];
+
+        match *sl {
+            [-1, _, _] => println!("Error: input not supported"),
+            [a, -1, _] => print!("{}", code[a as usize] as u8 as char),
+            [a,b,c] => {
+                let mut cb = code[b as usize];
+                cb -= code[a as usize];
+                code[b as usize] = cb;
+                if cb <= 0 {
+                    next_ip = c;
+                }
+            },
+            _ => ()
+        };
+        ip = next_ip;
+    }
+}
+
 fn load() -> [i32; MEM_SIZE] {
     let loaded: Vec<i32> = program::SUBLEQ_PROGRAM
         .split(" ")
@@ -239,4 +268,5 @@ fn main() {
     test_time(subleq_opt3, "opt3");
     test_time(subleq_opt4, "opt4");
     test_time(subleq_opt5, "opt5");
+    test_time(subleq_opt6, "opt6");
 }
