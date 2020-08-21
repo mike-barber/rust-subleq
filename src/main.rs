@@ -1,8 +1,11 @@
 mod program;
 
+use std::io::Read;
+
 const MEM_SIZE: usize = 65535;
 
 /*
+// original C code
 void subleq(int* code) {
     int ip = 0, a, b, c, nextIP;
     char ch;
@@ -37,39 +40,16 @@ fn subleq(code: &mut [i32]) {
     while ip >= 0 {
         next_ip = ip + 3;
 
-        let a = code[ip as usize];
-        let b = code[(ip + 1) as usize];
-        let c = code[(ip + 2) as usize];
-
-        if a == -1 {
-            println!("Error: input not supported");
-        } else if b == -1 {
-            print!("{}", code[a as usize] as u8 as char);
-        } else {
-            code[b as usize] -= code[a as usize];
-            if code[b as usize] <= 0 {
-                next_ip = c;
-            }
-        }
-        ip = next_ip;
-    }
-}
-
-fn subleq_opt(code: &mut [i32]) {
-    let mut ip = 0i32;
-    let mut next_ip;
-
-    while ip >= 0 {
-        next_ip = ip + 3;
-
+        // slice and constant indices is nice and fast
         let ipu = ip as usize;
         let sl = &mut code[ipu..ipu + 3];
         let a = sl[0];
         let b = sl[1];
         let c = sl[2];
 
+        // traditional code
         if a == -1 {
-            println!("Error: input not supported");
+            code[b as usize] = read_input();
         } else if b == -1 {
             print!("{}", code[a as usize] as u8 as char);
         } else {
@@ -83,49 +63,23 @@ fn subleq_opt(code: &mut [i32]) {
     }
 }
 
-fn subleq_opt2(code: &mut [i32]) {
+fn subleq_match(code: &mut [i32]) {
     let mut ip = 0i32;
     let mut next_ip;
 
     while ip >= 0 {
         next_ip = ip + 3;
 
+        // slice and constant indices is nice and fast
         let ipu = ip as usize;
         let sl = &mut code[ipu..ipu + 3];
         let a = sl[0];
         let b = sl[1];
         let c = sl[2];
 
+        // match expression alternative
         match (a, b) {
-            (-1, _) => println!("Error: input not supported"),
-            (_, -1) => print!("{}", code[a as usize] as u8 as char),
-            _ => {
-                code[b as usize] -= code[a as usize];
-                if code[b as usize] <= 0 {
-                    next_ip = c;
-                }
-            }
-        };
-        ip = next_ip;
-    }
-}
-
-// this one is about the fastest
-fn subleq_opt3(code: &mut [i32]) {
-    let mut ip = 0i32;
-    let mut next_ip;
-
-    while ip >= 0 {
-        next_ip = ip + 3;
-
-        let ipu = ip as usize;
-        let sl = &mut code[ipu..ipu + 3];
-        let a = sl[0];
-        let b = sl[1];
-        let c = sl[2];
-
-        match (a, b) {
-            (-1, _) => println!("Error: input not supported"),
+            (-1, _) => code[b as usize] = read_input(),
             (_, -1) => print!("{}", code[a as usize] as u8 as char),
             _ => {
                 let mut cb = code[b as usize];
@@ -135,100 +89,6 @@ fn subleq_opt3(code: &mut [i32]) {
                     next_ip = c;
                 }
             }
-        };
-        ip = next_ip;
-    }
-}
-
-fn subleq_opt4(code: &mut [i32]) {
-    let mut ip = 0i32;
-    let mut next_ip;
-
-    while ip >= 0 {
-        next_ip = ip + 3;
-
-        let ipu = ip as usize;
-        let sl = &mut code[ipu..ipu + 3];
-        let a = sl[0];
-        let b = sl[1];
-        let c = sl[2];
-
-        match (a, b) {
-            (-1, _) => println!("Error: input not supported"),
-            (_, -1) => print!("{}", code[a as usize] as u8 as char),
-            _ => {
-                // copy ca, then use a mutable reference to cb
-                // (this isn't as fast as the _opt3 approach)
-                let ca = code[a as usize];
-                let cb = &mut code[b as usize];
-                *cb -= ca;
-                if *cb <= 0 {
-                    next_ip = c;
-                }
-            }
-        };
-        ip = next_ip;
-    }
-}
-
-// also no faster; the slice approach works fine!
-fn subleq_opt5(code: &mut [i32]) {
-    use std::mem::transmute_copy;
-
-    struct ABC {
-        a: i32,
-        b: i32,
-        c: i32,
-    }
-
-    let mut ip = 0i32;
-    let mut next_ip;
-
-    while ip >= 0 {
-        next_ip = ip + 3;
-
-        let ipu = ip as usize;
-        let v: ABC = unsafe { transmute_copy(&code[ipu]) };
-
-        match (v.a, v.b) {
-            (-1, _) => println!("Error: input not supported"),
-            (_, -1) => print!("{}", code[v.a as usize] as u8 as char),
-            _ => {
-                let mut cb = code[v.b as usize];
-                cb -= code[v.a as usize];
-                code[v.b as usize] = cb;
-                if cb <= 0 {
-                    next_ip = v.c;
-                }
-            }
-        };
-        ip = next_ip;
-    }
-}
-
-// and this one (also a match) is really fast too
-fn subleq_opt6(code: &mut [i32]) {
-    let mut ip = 0i32;
-    let mut next_ip;
-
-    while ip >= 0 {
-        next_ip = ip + 3;
-
-        let ipu = ip as usize;
-        let sl = &mut code[ipu..ipu + 3];
-
-        match *sl {
-            [-1, _, _] => println!("Error: input not supported"),
-            [a, -1, _] => print!("{}", code[a as usize] as u8 as char),
-            [a,b,c] => {
-                let mut cb = code[b as usize];
-                cb -= code[a as usize];
-                code[b as usize] = cb;
-                if cb <= 0 {
-                    next_ip = c;
-                }
-            },
-            _ => ()
         };
         ip = next_ip;
     }
@@ -244,29 +104,35 @@ fn load() -> [i32; MEM_SIZE] {
     dataset
 }
 
+// probably a better way to do this; not very idiomatic
+fn read_input() -> i32 {
+    let mut buf = [0u8; 1];
+    std::io::stdin().read_exact(&mut buf).unwrap();
+    buf[0] as i32
+}
+
 fn test_time<F>(f: F, label: &str)
 where
     F: Fn(&mut [i32]),
 {
     use std::time::Instant;
 
-    let mut dataset = load();
-    let start = Instant::now();
-    f(&mut dataset);
-    let finish = Instant::now();
-    println!(
-        "{} time {:?}",
-        label,
-        finish.checked_duration_since(start).unwrap()
-    );
+    for i in 0..5 {
+        println!();
+        let mut dataset = load();
+        let start = Instant::now();
+        f(&mut dataset);
+        let finish = Instant::now();
+        println!(
+            "{} iter {} time {:?}",
+            label,
+            i,
+            finish.checked_duration_since(start).unwrap()
+        );
+    }
 }
 
 fn main() {
-    test_time(subleq, "normal");
-    test_time(subleq_opt, "opt");
-    test_time(subleq_opt2, "opt2");
-    test_time(subleq_opt3, "opt3");
-    test_time(subleq_opt4, "opt4");
-    test_time(subleq_opt5, "opt5");
-    test_time(subleq_opt6, "opt6");
+    test_time(subleq, "subleq traditional");
+    test_time(subleq_match, "subleq match expression");
 }
