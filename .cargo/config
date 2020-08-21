@@ -1,4 +1,4 @@
 [build]
 # enabling this gives quite a large performance uplift to the subleq_match case :)
 # haven't had a look at the assembly to see why
-rustflags = ["-C", "target-cpu=native" ]
+rustflags = ["-C", "target-cpu=haswell" ]
